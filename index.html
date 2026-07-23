@@ -218,6 +218,10 @@
       <h3>💵 Todos los ingresos <span style="color:var(--muted);font-weight:400;" id="f-ingresos-count"></span></h3>
       <div id="f-ingresos-lista" class="scroll-list"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
     </div>
+    <div class="block">
+      <h3>📅 Historial de períodos (23 al 22)</h3>
+      <div id="f-periodos"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
   </section>
 
   <!-- HORCHATAS -->
@@ -368,6 +372,15 @@ function fechaSV(isoTimestamp){
   const [m,d,y] = p.split('/');
   return `${y}-${m}-${d}`;
 }
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+// Devuelve la clave del periodo financiero (23 al 22) al que pertenece una fecha
+function periodoDe(isoTimestamp){
+  const fSV = fechaSV(isoTimestamp); // YYYY-MM-DD en hora El Salvador
+  const [y,m,d] = fSV.split('-').map(Number);
+  let mesFin = d >= 23 ? m : (m - 1 === 0 ? 12 : m - 1);
+  let anioFin = d >= 23 ? (m === 12 ? y + 1 : y) : (m - 1 === 0 ? y - 1 : y);
+  return { key: anioFin + '-' + String(mesFin).padStart(2,'0'), nombre: MESES_ES[mesFin-1], anio: anioFin };
+}
 
 // sb() ahora manda el token de la SESION real (no la clave publica sola),
 // asi las politicas de RLS saben que sos vos, autenticado.
@@ -493,6 +506,27 @@ async function cargarFinanzas(){
         return `<div class="row"><span class="t">${i.descripcion} <span class="m">· ${fecha} · ${i.fuente||''}</span></span><span class="amt pos">+${fmt$(i.monto)}</span></div>`;
       }).join('')
     : emptyRow('Sin ingresos registrados.');
+
+  // ---- Historial de periodos financieros (23 al 22) ----
+  const periodos = {};
+  gastos.forEach(g=>{
+    const p = periodoDe(g.created_at);
+    if (!periodos[p.key]) periodos[p.key] = { nombre:p.nombre, anio:p.anio, gastos:0, ingresos:0 };
+    periodos[p.key].gastos += (parseFloat(g.monto)||0);
+  });
+  ingresos.forEach(i=>{
+    const p = periodoDe(i.created_at);
+    if (!periodos[p.key]) periodos[p.key] = { nombre:p.nombre, anio:p.anio, gastos:0, ingresos:0 };
+    periodos[p.key].ingresos += (parseFloat(i.monto)||0);
+  });
+  const clavesOrdenadas = Object.keys(periodos).sort().reverse();
+  document.getElementById('f-periodos').innerHTML = clavesOrdenadas.length
+    ? clavesOrdenadas.map(k=>{
+        const p = periodos[k];
+        const bal = p.ingresos - p.gastos;
+        return `<div class="row"><span class="t">${p.nombre} ${p.anio} <span class="m">(23 ant. al 22)</span></span><span class="amt ${bal>=0?'pos':'neg'}">${fmt$(bal)}</span></div>`;
+      }).join('')
+    : emptyRow('Sin historial de períodos aún.');
 }
 
 // ---------- HORCHATAS ----------
