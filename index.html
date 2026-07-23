@@ -75,6 +75,7 @@
   .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--cinnamon-dim),var(--cinnamon));}
 
   .empty{color:var(--muted);font-size:12.5px;padding:6px 0;}
+  .scroll-list{max-height:340px;overflow-y:auto;}
 
   .pedido-item{border-bottom:1px solid var(--line);}
   .pedido-item:last-child{border-bottom:none;}
@@ -192,8 +193,12 @@
       <div id="f-deudas"><div class="skel line"></div><div class="skel line"></div></div>
     </div>
     <div class="block">
-      <h3>🧾 Últimos gastos</h3>
-      <div id="f-ultimos"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+      <h3>🧾 Todos los gastos <span style="color:var(--muted);font-weight:400;" id="f-gastos-count"></span></h3>
+      <div id="f-ultimos" class="scroll-list"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>💵 Todos los ingresos <span style="color:var(--muted);font-weight:400;" id="f-ingresos-count"></span></h3>
+      <div id="f-ingresos-lista" class="scroll-list"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
     </div>
   </section>
 
@@ -203,6 +208,10 @@
       <div class="eyebrow">Pedido activo</div>
       <div class="num" id="h-total">–</div>
       <div class="label" id="h-clientes-count">cargando…</div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="k">Total vendido (histórico)</div><div class="v" id="h-total-ganado">–</div></div>
+      <div class="card"><div class="k">Pedidos cerrados</div><div class="v" id="h-total-pedidos">–</div></div>
     </div>
     <div class="block">
       <h3>🥤 Pedido activo — detalle</h3>
@@ -326,7 +335,16 @@ const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
 function fmt$(n){ return '$' + (parseFloat(n)||0).toFixed(2); }
-function hoyISO(){ return new Date().toISOString().split('T')[0]; }
+function hoyISO(){
+  const p = new Date().toLocaleString('en-US', { timeZone: 'America/El_Salvador', year:'numeric', month:'2-digit', day:'2-digit' });
+  const [m,d,y] = p.split('/');
+  return `${y}-${m}-${d}`;
+}
+function fechaSV(isoTimestamp){
+  const p = new Date(isoTimestamp).toLocaleString('en-US', { timeZone: 'America/El_Salvador', year:'numeric', month:'2-digit', day:'2-digit' });
+  const [m,d,y] = p.split('/');
+  return `${y}-${m}-${d}`;
+}
 
 async function sb(path){
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -402,8 +420,8 @@ async function cargarResumen(){
 // ---------- FINANZAS ----------
 async function cargarFinanzas(){
   const [gastos, ingresos, deudas] = await Promise.all([
-    sb('gastos?order=created_at.desc&limit=50'),
-    sb('ingresos?select=monto'),
+    sb('gastos?order=created_at.desc&limit=1000'),
+    sb('ingresos?order=created_at.desc&limit=1000'),
     sb('deudas?estado=eq.activa')
   ]);
 
@@ -433,16 +451,29 @@ async function cargarFinanzas(){
       `<div class="row"><span class="t"><b>Total</b></span><span class="amt">${fmt$(totalDeuda)}/mes</span></div>`
     : emptyRow('Sin deudas activas.');
 
+  document.getElementById('f-gastos-count').textContent = gastos.length ? '(' + gastos.length + ')' : '';
   document.getElementById('f-ultimos').innerHTML = gastos.length
-    ? gastos.slice(0,8).map(g=>`<div class="row"><span class="t">${g.descripcion}</span><span class="amt neg">-${fmt$(g.monto)}</span></div>`).join('')
+    ? gastos.map(g=>{
+        const fecha = new Date(g.created_at).toLocaleDateString('es-SV',{day:'numeric',month:'short',timeZone:'America/El_Salvador'});
+        return `<div class="row"><span class="t">${g.descripcion} <span class="m">· ${fecha}</span></span><span class="amt neg">-${fmt$(g.monto)}</span></div>`;
+      }).join('')
     : emptyRow('Sin gastos registrados.');
+
+  document.getElementById('f-ingresos-count').textContent = ingresos.length ? '(' + ingresos.length + ')' : '';
+  document.getElementById('f-ingresos-lista').innerHTML = ingresos.length
+    ? ingresos.map(i=>{
+        const fecha = new Date(i.created_at).toLocaleDateString('es-SV',{day:'numeric',month:'short',timeZone:'America/El_Salvador'});
+        return `<div class="row"><span class="t">${i.descripcion} <span class="m">· ${fecha} · ${i.fuente||''}</span></span><span class="amt pos">+${fmt$(i.monto)}</span></div>`;
+      }).join('')
+    : emptyRow('Sin ingresos registrados.');
 }
 
 // ---------- HORCHATAS ----------
 async function cargarHorchatas(){
-  const [pedidoR, historial] = await Promise.all([
+  const [pedidoR, historial, ingresosHorchatas] = await Promise.all([
     sb('pedido_activo?id=eq.1'),
-    sb('horchatas?order=created_at.desc&limit=10')
+    sb('horchatas?order=created_at.desc&limit=10'),
+    sb('ingresos?fuente=eq.horchatas&select=monto')
   ]);
 
   const pd = pedidoR[0]?.data;
@@ -452,6 +483,10 @@ async function cargarHorchatas(){
 
   document.getElementById('h-total').textContent = fmt$(total);
   document.getElementById('h-clientes-count').textContent = clientes.length ? clientes.length + ' clientes en el pedido' : 'Sin pedido activo';
+
+  const totalGanado = ingresosHorchatas.reduce((s,i)=>s+(parseFloat(i.monto)||0),0);
+  document.getElementById('h-total-ganado').textContent = fmt$(totalGanado);
+  document.getElementById('h-total-pedidos').textContent = ingresosHorchatas.length;
 
   document.getElementById('h-activo').innerHTML = clientes.length
     ? clientes.map(([nombre,items])=>{
@@ -518,12 +553,14 @@ async function cargarHorchatas(){
 
 // ---------- SALUD ----------
 async function cargarSalud(){
-  const [comidas, medR, gymR, habR] = await Promise.all([
-    sb(`comidas?fecha=eq.${hoyISO()}&order=created_at.asc`),
+  const hoy = hoyISO();
+  const [comidasRaw, medR, gymR, habR] = await Promise.all([
+    sb(`comidas?order=created_at.desc&limit=30`),
     sb('mediciones?order=created_at.desc&limit=1'),
     sb('gym?order=created_at.desc&limit=5'),
-    sb(`habitos_diarios?fecha=eq.${hoyISO()}`)
+    sb(`habitos_diarios?fecha=eq.${hoy}`)
   ]);
+  const comidas = comidasRaw.filter(c => fechaSV(c.created_at) === hoy || c.fecha === hoy);
 
   const totalCal = comidas.reduce((s,c)=>s+(parseFloat(c.calorias)||0),0);
   const totalProt = comidas.reduce((s,c)=>s+(parseFloat(c.proteina_g)||0),0);
