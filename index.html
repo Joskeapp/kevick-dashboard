@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Kevick — Panel</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -138,6 +139,23 @@
 </style>
 </head>
 <body>
+
+<!-- LOGIN GATE -->
+<div id="login-gate" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:24px;">
+  <div class="eyebrow" style="margin-bottom:6px;">Kevick · Panel personal</div>
+  <h1 style="font-size:22px;margin:0 0 24px;">Iniciá sesión</h1>
+  <div style="width:100%;max-width:320px;">
+    <input id="login-email" type="email" placeholder="Correo" autocomplete="username"
+      style="width:100%;padding:12px 14px;margin-bottom:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:14px;">
+    <input id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password"
+      style="width:100%;padding:12px 14px;margin-bottom:14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:14px;">
+    <button id="login-btn" style="width:100%;padding:13px;border-radius:10px;border:none;background:var(--cinnamon);color:#14100D;font-weight:600;font-size:14px;">Entrar</button>
+    <div id="login-error" style="color:var(--bad);font-size:12.5px;margin-top:10px;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD (oculto hasta iniciar sesión) -->
+<div id="dashboard-content" style="display:none;">
 
 <header class="top">
   <div class="eyebrow">Kevick · Panel personal</div>
@@ -324,12 +342,17 @@
   <button data-tab="familia"><span class="ic">👨‍👩‍👧</span>Familia</button>
 </nav>
 
+</div><!-- /dashboard-content -->
+
 <script>
 // ============================================================
-// CONFIG — reemplazá el valor de abajo con tu Legacy anon key
+// CONFIG
 // ============================================================
 const SUPABASE_URL = 'https://qfzarytzrfvlbikqpeyi.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_dpdjotN-wKl-zH2EqfHAVQ_-L3WbeHP';
+
+const { createClient } = supabase; // viene del CDN de supabase-js
+const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
@@ -346,9 +369,13 @@ function fechaSV(isoTimestamp){
   return `${y}-${m}-${d}`;
 }
 
+// sb() ahora manda el token de la SESION real (no la clave publica sola),
+// asi las politicas de RLS saben que sos vos, autenticado.
 async function sb(path){
+  const { data: { session } } = await authClient.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON_KEY;
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` }
   });
   if (!r.ok) { console.error('Supabase error', path, r.status); return []; }
   return r.json();
@@ -677,14 +704,41 @@ async function cargarFamilia(){
     : emptyRow('Sin pendientes del hogar.');
 }
 
-// ---------- Carga inicial ----------
-cargarResumen();
-cargarFinanzas();
-cargarHorchatas();
-cargarSalud();
-cargarLegal();
-cargarProyectos();
-cargarFamilia();
+// ---------- Autenticacion ----------
+function cargarTodo(){
+  cargarResumen();
+  cargarFinanzas();
+  cargarHorchatas();
+  cargarSalud();
+  cargarLegal();
+  cargarProyectos();
+  cargarFamilia();
+}
+
+function mostrarDashboard(){
+  document.getElementById('login-gate').style.display = 'none';
+  document.getElementById('dashboard-content').style.display = 'block';
+  cargarTodo();
+}
+
+async function intentarLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Completá correo y contraseña.'; return; }
+  const { error } = await authClient.auth.signInWithPassword({ email, password: pass });
+  if (error) { errEl.textContent = 'No se pudo entrar: correo o contraseña incorrectos.'; return; }
+  mostrarDashboard();
+}
+
+document.getElementById('login-btn').addEventListener('click', intentarLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') intentarLogin(); });
+
+// Si ya hay sesion guardada (visita anterior), entra directo sin pedir login de nuevo
+authClient.auth.getSession().then(({ data: { session } }) => {
+  if (session) mostrarDashboard();
+});
 </script>
 </body>
 </html>
