@@ -76,6 +76,31 @@
 
   .empty{color:var(--muted);font-size:12.5px;padding:6px 0;}
 
+  .pedido-item{border-bottom:1px solid var(--line);}
+  .pedido-item:last-child{border-bottom:none;}
+  .pedido-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:11px 0;cursor:pointer;font-size:13.5px;
+  }
+  .pedido-head .info{display:flex;flex-direction:column;gap:2px;}
+  .pedido-head .fecha-badge{color:var(--text);font-weight:500;}
+  .pedido-head .estado{font-size:11px;color:var(--muted);}
+  .pedido-head .estado.entregado{color:var(--good);}
+  .pedido-head .right{display:flex;align-items:center;gap:8px;}
+  .pedido-head .amt{font-weight:600;}
+  .pedido-head .chev{color:var(--cinnamon);font-size:12px;transition:transform .25s ease;}
+  .pedido-item.open .chev{transform:rotate(90deg);}
+  .pedido-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+  .pedido-item.open .pedido-body{max-height:600px;}
+  .pedido-body-inner{padding:2px 0 12px;}
+  .cliente-line{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--muted);}
+  .cliente-line .items{color:var(--text);}
+  .cliente-line .sub{font-variant-numeric:tabular-nums;color:var(--cinnamon);}
+  .consolidado-mini{
+    margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
+    font-size:11.5px;color:var(--muted);
+  }
+
   .skel{background:linear-gradient(90deg,var(--surface) 25%,var(--surface-2) 37%,var(--surface) 63%);
     background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:8px;}
   @keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
@@ -84,17 +109,31 @@
 
   nav.tabs{
     position:fixed;bottom:0;left:0;right:0;
-    background:rgba(20,16,13,.92);backdrop-filter:blur(10px);
+    background:rgba(20,16,13,.94);backdrop-filter:blur(14px);
     border-top:1px solid var(--line);
-    display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+    gap:2px;
     z-index:10;
+    overflow-x:auto;
+    scrollbar-width:none;
   }
+  nav.tabs::-webkit-scrollbar{display:none;}
   nav.tabs button{
-    flex:1;background:none;border:none;color:var(--muted);font-family:'Inter',sans-serif;
-    font-size:10.5px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;
+    flex:0 0 auto;min-width:62px;background:none;border:none;color:var(--muted);font-family:'Inter',sans-serif;
+    font-size:10.5px;font-weight:500;padding:9px 8px 7px;border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;gap:5px;white-space:nowrap;
+    transition:color .2s ease,background .2s ease;
   }
-  nav.tabs button .ic{font-size:18px;}
-  nav.tabs button.active{color:var(--cinnamon);}
+  nav.tabs button .ic{
+    font-size:19px;line-height:1;
+    filter:grayscale(1) opacity(.55);
+    transition:filter .2s ease,transform .2s ease;
+  }
+  nav.tabs button.active{
+    color:var(--cinnamon);
+    background:linear-gradient(180deg,rgba(201,138,75,.14),rgba(201,138,75,.03));
+  }
+  nav.tabs button.active .ic{ filter:none; transform:translateY(-1px); }
 </style>
 </head>
 <body>
@@ -226,6 +265,44 @@
     </div>
   </section>
 
+  <!-- PROYECTOS -->
+  <section id="tab-proyectos">
+    <div class="hero">
+      <div class="eyebrow">Proyectos</div>
+      <div class="num" id="p-count">–</div>
+      <div class="label">con avances registrados</div>
+    </div>
+    <div class="block">
+      <h3>🧩 Avances recientes por proyecto</h3>
+      <div id="p-avances"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>🤝 Pipeline de clientes</h3>
+      <div id="p-pipeline"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>💡 Ideas</h3>
+      <div id="p-ideas"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+  </section>
+
+  <!-- FAMILIA -->
+  <section id="tab-familia">
+    <div class="hero">
+      <div class="eyebrow">Familia y hogar</div>
+      <div class="num" id="fam-proxima">–</div>
+      <div class="label" id="fam-proxima-label">cargando…</div>
+    </div>
+    <div class="block">
+      <h3>🎂 Fechas importantes</h3>
+      <div id="fam-fechas"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>🏠 Pendientes del hogar</h3>
+      <div id="fam-hogar"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+  </section>
+
 </main>
 
 <nav class="tabs">
@@ -234,6 +311,8 @@
   <button data-tab="horchatas"><span class="ic">🥤</span>Horchatas</button>
   <button data-tab="salud"><span class="ic">🩺</span>Salud</button>
   <button data-tab="legal"><span class="ic">⚖️</span>Legal</button>
+  <button data-tab="proyectos"><span class="ic">🧩</span>Proyectos</button>
+  <button data-tab="familia"><span class="ic">👨‍👩‍👧</span>Familia</button>
 </nav>
 
 <script>
@@ -363,7 +442,7 @@ async function cargarFinanzas(){
 async function cargarHorchatas(){
   const [pedidoR, historial] = await Promise.all([
     sb('pedido_activo?id=eq.1'),
-    sb('horchatas?order=created_at.desc&limit=8')
+    sb('horchatas?order=created_at.desc&limit=10')
   ]);
 
   const pd = pedidoR[0]?.data;
@@ -381,12 +460,60 @@ async function cargarHorchatas(){
       }).join('')
     : emptyRow('No hay pedido activo ahora mismo.');
 
-  document.getElementById('h-historial').innerHTML = historial.length
-    ? historial.map(p=>{
-        const fecha = new Date(p.created_at).toLocaleDateString('es-SV',{day:'numeric',month:'short',timeZone:'America/El_Salvador'});
-        return `<div class="row"><span class="t">${fecha} — ${(p.cliente||'').split(',').length} clientes</span><span class="m">${p.entregado?'Entregado':'Pendiente'}</span></div>`;
-      }).join('')
-    : emptyRow('Sin pedidos anteriores.');
+  if (!historial.length) {
+    setHTML('h-historial', emptyRow('Sin pedidos anteriores.'));
+    return;
+  }
+
+  const items = await sb('items_pedido?pedido_id=in.(' + historial.map(p=>p.id).join(',') + ')');
+
+  document.getElementById('h-historial').innerHTML = historial.map((p, idx) => {
+    const fecha = new Date(p.created_at).toLocaleDateString('es-SV',{day:'numeric',month:'short',year:'numeric',timeZone:'America/El_Salvador'});
+    const pitems = items.filter(i => i.pedido_id === p.id);
+    const total = pitems.reduce((s,i)=>s+(parseFloat(i.subtotal)||0),0);
+
+    const porCliente = {};
+    pitems.forEach(i=>{
+      const c = i.cliente || 'Sin nombre';
+      if (!porCliente[c]) porCliente[c] = [];
+      porCliente[c].push(i);
+    });
+
+    const consolidado = {};
+    pitems.forEach(i=>{
+      const k = i.producto + ' ' + i.presentacion;
+      if (!consolidado[k]) consolidado[k] = 0;
+      consolidado[k] += (parseInt(i.cantidad)||0);
+    });
+
+    const clientesHTML = Object.entries(porCliente).map(([nombre, citems])=>{
+      const sub = citems.reduce((s,i)=>s+(parseFloat(i.subtotal)||0),0);
+      const desc = citems.map(i=> i.cantidad+'x '+i.producto+' '+i.presentacion).join(', ');
+      return `<div class="cliente-line"><span class="items"><b>${nombre}</b> — ${desc}</span><span class="sub">${fmt$(sub)}</span></div>`;
+    }).join('');
+
+    const consolidadoHTML = Object.entries(consolidado).map(([k,v])=>`${k}: ${v}u`).join(' · ');
+
+    return `
+      <div class="pedido-item" id="pedido-${idx}">
+        <div class="pedido-head" onclick="document.getElementById('pedido-${idx}').classList.toggle('open')">
+          <div class="info">
+            <span class="fecha-badge">${fecha}</span>
+            <span class="estado ${p.entregado?'entregado':''}">${p.entregado?'Entregado':'Pendiente'} · ${Object.keys(porCliente).length} clientes</span>
+          </div>
+          <div class="right">
+            <span class="amt">${fmt$(total)}</span>
+            <span class="chev">▸</span>
+          </div>
+        </div>
+        <div class="pedido-body">
+          <div class="pedido-body-inner">
+            ${clientesHTML}
+            <div class="consolidado-mini">${consolidadoHTML}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ---------- SALUD ----------
@@ -452,12 +579,75 @@ async function cargarLegal(){
     : emptyRow('Sin escrituras registradas.');
 }
 
+// ---------- PROYECTOS ----------
+async function cargarProyectos(){
+  const [avancesR, pipelineR, ideasR] = await Promise.all([
+    sb('proyectos_avance?order=created_at.desc&limit=30'),
+    sb('pipeline_ventas?order=created_at.desc&limit=15'),
+    sb('ideas?order=created_at.desc&limit=15')
+  ]);
+
+  const porProyecto = {};
+  avancesR.forEach(a=>{
+    const p = a.proyecto || 'otro';
+    if (!porProyecto[p]) porProyecto[p] = [];
+    porProyecto[p].push(a);
+  });
+
+  document.getElementById('p-count').textContent = Object.keys(porProyecto).length;
+
+  document.getElementById('p-avances').innerHTML = Object.keys(porProyecto).length
+    ? Object.entries(porProyecto).map(([proyecto, avances])=>{
+        const ultimos = avances.slice(0,3).map(a=>`<div class="cliente-line"><span class="items">${a.avance}</span></div>`).join('');
+        return `<div class="pedido-item" style="border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px;">
+          <div class="row" style="border-bottom:none;"><span class="t"><b>${proyecto}</b></span><span class="m">${avances.length} avances</span></div>
+          ${ultimos}
+        </div>`;
+      }).join('')
+    : emptyRow('Sin avances registrados aún.');
+
+  document.getElementById('p-pipeline').innerHTML = pipelineR.length
+    ? pipelineR.map(p=>`<div class="row"><span class="t">${p.cliente} <span class="m">(${p.proyecto})</span></span><span class="amt">${p.estado}${p.monto ? ' · '+fmt$(p.monto) : ''}</span></div>`).join('')
+    : emptyRow('Sin clientes en pipeline.');
+
+  document.getElementById('p-ideas').innerHTML = ideasR.length
+    ? ideasR.map(i=>`<div class="row"><span class="t">${i.titulo}</span><span class="m">${i.proyecto||''}</span></div>`).join('')
+    : emptyRow('Sin ideas registradas.');
+}
+
+// ---------- FAMILIA ----------
+async function cargarFamilia(){
+  const [fechasR, hogarR] = await Promise.all([
+    sb('fechas_importantes?order=fecha.asc'),
+    sb('pendientes_hogar?hecho=eq.false&order=created_at.desc')
+  ]);
+
+  if (fechasR.length){
+    const proxima = fechasR[0];
+    document.getElementById('fam-proxima').textContent = proxima.titulo;
+    document.getElementById('fam-proxima-label').textContent = 'próxima fecha: ' + proxima.fecha;
+  } else {
+    document.getElementById('fam-proxima').textContent = '–';
+    document.getElementById('fam-proxima-label').textContent = 'Sin fechas registradas.';
+  }
+
+  document.getElementById('fam-fechas').innerHTML = fechasR.length
+    ? fechasR.map(f=>`<div class="row"><span class="t">${f.titulo}</span><span class="m">${f.fecha} · ${f.tipo||''}</span></div>`).join('')
+    : emptyRow('Sin fechas importantes registradas.');
+
+  document.getElementById('fam-hogar').innerHTML = hogarR.length
+    ? hogarR.map(h=>`<div class="row"><span class="t">${h.titulo}</span></div>`).join('')
+    : emptyRow('Sin pendientes del hogar.');
+}
+
 // ---------- Carga inicial ----------
 cargarResumen();
 cargarFinanzas();
 cargarHorchatas();
 cargarSalud();
 cargarLegal();
+cargarProyectos();
+cargarFamilia();
 </script>
 </body>
 </html>
