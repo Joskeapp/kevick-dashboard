@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kevick — Panel</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14100D;
+    --surface:#1E1811;
+    --surface-2:#261E15;
+    --line:#332A1E;
+    --cinnamon:#C98A4B;
+    --cinnamon-dim:#8A5F35;
+    --teal:#3E7A70;
+    --text:#F2E9DD;
+    --muted:#9C8F7E;
+    --bad:#C9634B;
+    --good:#7FA87A;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  body{padding-bottom:84px;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinnamon);font-weight:600;}
+
+  header.top{padding:22px 20px 14px;position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 70%,transparent);z-index:5;}
+  header.top .eyebrow{margin-bottom:2px;}
+  header.top h1{font-size:22px;margin:0;font-weight:600;color:var(--text);}
+  header.top .fecha{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  main{padding:0 16px;}
+  section{display:none;animation:fade .35s ease;}
+  section.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .hero{
+    background:linear-gradient(135deg,var(--surface-2),var(--surface) 70%);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;
+    background:radial-gradient(circle,var(--cinnamon-dim) 0%,transparent 70%);opacity:.35;
+  }
+  .hero .num{font-size:34px;font-weight:600;line-height:1;}
+  .hero .label{font-size:12px;color:var(--muted);margin-top:6px;}
+  .hero .sub{font-size:12px;color:var(--cinnamon);margin-top:10px;font-weight:500;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;}
+  .card .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+  .card .v{font-size:20px;font-weight:600;margin-top:4px;}
+
+  .block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;}
+  .block h3{font-size:14px;margin:0 0 12px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .row:last-child{border-bottom:none;}
+  .row .t{color:var(--text);}
+  .row .m{color:var(--muted);font-size:11.5px;}
+  .row .amt{font-weight:600;font-variant-numeric:tabular-nums;}
+  .amt.neg{color:var(--bad);}
+  .amt.pos{color:var(--good);}
+
+  .bar-wrap{margin-top:10px;}
+  .bar-label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+  .bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden;}
+  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--cinnamon-dim),var(--cinnamon));}
+
+  .empty{color:var(--muted);font-size:12.5px;padding:6px 0;}
+
+  .skel{background:linear-gradient(90deg,var(--surface) 25%,var(--surface-2) 37%,var(--surface) 63%);
+    background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:8px;}
+  @keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+  .skel.line{height:12px;margin:6px 0;}
+  .skel.big{height:34px;width:60%;margin-bottom:4px;}
+
+  nav.tabs{
+    position:fixed;bottom:0;left:0;right:0;
+    background:rgba(20,16,13,.92);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    z-index:10;
+  }
+  nav.tabs button{
+    flex:1;background:none;border:none;color:var(--muted);font-family:'Inter',sans-serif;
+    font-size:10.5px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  }
+  nav.tabs button .ic{font-size:18px;}
+  nav.tabs button.active{color:var(--cinnamon);}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">Kevick · Panel personal</div>
+  <h1 id="saludo">Hola</h1>
+  <div class="fecha" id="fechaHoy"></div>
+</header>
+
+<main>
+
+  <!-- RESUMEN -->
+  <section id="tab-resumen" class="active">
+    <div class="hero">
+      <div class="eyebrow">Hoy</div>
+      <div class="num" id="r-tareas">–</div>
+      <div class="label">tareas pendientes</div>
+      <div class="sub" id="r-proximo">cargando…</div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="k">Balance</div><div class="v" id="r-balance">–</div></div>
+      <div class="card"><div class="k">Pedido activo</div><div class="v" id="r-pedido">–</div></div>
+    </div>
+    <div class="block">
+      <h3>📌 Tareas pendientes</h3>
+      <div id="lista-tareas"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>⚖️ Próximo en lo legal</h3>
+      <div id="lista-legal-mini"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>🧩 Proyectos activos</h3>
+      <div id="lista-proyectos"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+  </section>
+
+  <!-- FINANZAS -->
+  <section id="tab-finanzas">
+    <div class="hero">
+      <div class="eyebrow">Balance general</div>
+      <div class="num" id="f-balance">–</div>
+      <div class="label">ingresos menos gastos registrados</div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="k">Ingresos</div><div class="v" id="f-ingresos">–</div></div>
+      <div class="card"><div class="k">Gastos</div><div class="v" id="f-gastos">–</div></div>
+    </div>
+    <div class="block">
+      <h3>📊 Gastos por categoría</h3>
+      <div id="f-categorias"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>💳 Deudas fijas</h3>
+      <div id="f-deudas"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>🧾 Últimos gastos</h3>
+      <div id="f-ultimos"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+  </section>
+
+  <!-- HORCHATAS -->
+  <section id="tab-horchatas">
+    <div class="hero">
+      <div class="eyebrow">Pedido activo</div>
+      <div class="num" id="h-total">–</div>
+      <div class="label" id="h-clientes-count">cargando…</div>
+    </div>
+    <div class="block">
+      <h3>🥤 Pedido activo — detalle</h3>
+      <div id="h-activo"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>📦 Historial reciente</h3>
+      <div id="h-historial"><div class="skel line"></div><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+  </section>
+
+  <!-- SALUD -->
+  <section id="tab-salud">
+    <div class="hero">
+      <div class="eyebrow">Hoy</div>
+      <div class="num" id="s-calorias">–</div>
+      <div class="label">kcal aproximadas registradas</div>
+      <div class="sub" id="s-macros">cargando…</div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="k">Peso más reciente</div><div class="v" id="s-peso">–</div></div>
+      <div class="card"><div class="k">Ánimo hoy</div><div class="v" id="s-animo">–</div></div>
+    </div>
+    <div class="block">
+      <h3>🍽️ Comidas de hoy</h3>
+      <div id="s-comidas"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>💪 Entrenamientos recientes</h3>
+      <div id="s-gym"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>📏 Mediciones</h3>
+      <div id="s-mediciones"><div class="skel line"></div></div>
+    </div>
+  </section>
+
+  <!-- LEGAL -->
+  <section id="tab-legal">
+    <div class="hero">
+      <div class="eyebrow">Casos activos</div>
+      <div class="num" id="l-casos">–</div>
+      <div class="label">en fiscalía</div>
+    </div>
+    <div class="block">
+      <h3>⚖️ Casos FGR activos</h3>
+      <div id="l-casos-lista"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>📅 Próximas audiencias</h3>
+      <div id="l-audiencias"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>⏳ Plazos próximos</h3>
+      <div id="l-plazos"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+    <div class="block">
+      <h3>📋 Protocolo notarial reciente</h3>
+      <div id="l-protocolo"><div class="skel line"></div><div class="skel line"></div></div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabs">
+  <button data-tab="resumen" class="active"><span class="ic">🏠</span>Resumen</button>
+  <button data-tab="finanzas"><span class="ic">💰</span>Finanzas</button>
+  <button data-tab="horchatas"><span class="ic">🥤</span>Horchatas</button>
+  <button data-tab="salud"><span class="ic">🩺</span>Salud</button>
+  <button data-tab="legal"><span class="ic">⚖️</span>Legal</button>
+</nav>
+
+<script>
+// ============================================================
+// CONFIG — reemplazá el valor de abajo con tu Legacy anon key
+// ============================================================
+const SUPABASE_URL = 'https://qfzarytzrfvlbikqpeyi.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_dpdjotN-wKl-zH2EqfHAVQ_-L3WbeHP';
+
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+function fmt$(n){ return '$' + (parseFloat(n)||0).toFixed(2); }
+function hoyISO(){ return new Date().toISOString().split('T')[0]; }
+
+async function sb(path){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+  });
+  if (!r.ok) { console.error('Supabase error', path, r.status); return []; }
+  return r.json();
+}
+
+function setHTML(id, html){ document.getElementById(id).innerHTML = html; }
+function emptyRow(msg){ return `<div class="empty">${msg}</div>`; }
+
+// ---------- Tabs ----------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- Header ----------
+const h = new Date().getHours();
+document.getElementById('saludo').textContent = h < 12 ? 'Buenos días, Kevick' : h < 19 ? 'Buenas tardes, Kevick' : 'Buenas noches, Kevick';
+document.getElementById('fechaHoy').textContent = new Date().toLocaleDateString('es-SV', { weekday:'long', day:'numeric', month:'long', timeZone:'America/El_Salvador' });
+
+// ---------- RESUMEN ----------
+async function cargarResumen(){
+  const [tareas, plazos, audiencias, proyectos, gastos, ingresos, pedido] = await Promise.all([
+    sb('tareas?hecha=eq.false&order=created_at.desc'),
+    sb('plazos?order=fecha_vencimiento.asc&limit=3'),
+    sb(`audiencias?fecha=gte.${hoyISO()}&order=fecha.asc&limit=1`),
+    sb('proyectos_avance?order=created_at.desc&limit=5'),
+    sb('gastos?select=monto'),
+    sb('ingresos?select=monto'),
+    sb('pedido_activo?id=eq.1')
+  ]);
+
+  document.getElementById('r-tareas').textContent = tareas.length;
+  document.getElementById('lista-tareas').innerHTML = tareas.length
+    ? tareas.slice(0,6).map(t=>`<div class="row"><span class="t">${t.titulo}</span></div>`).join('')
+    : emptyRow('Sin tareas pendientes.');
+
+  if (audiencias.length){
+    document.getElementById('r-proximo').textContent = `Audiencia ${audiencias[0].fecha} · ${audiencias[0].tipo||''}`;
+  } else if (plazos.length){
+    document.getElementById('r-proximo').textContent = `Plazo: ${plazos[0].descripcion} · vence ${plazos[0].fecha_vencimiento}`;
+  } else {
+    document.getElementById('r-proximo').textContent = 'Sin eventos urgentes próximos.';
+  }
+
+  const totalIng = ingresos.reduce((s,i)=>s+(parseFloat(i.monto)||0),0);
+  const totalGas = gastos.reduce((s,g)=>s+(parseFloat(g.monto)||0),0);
+  const bal = totalIng - totalGas;
+  const balEl = document.getElementById('r-balance');
+  balEl.textContent = fmt$(bal);
+  balEl.style.color = bal >= 0 ? 'var(--good)' : 'var(--bad)';
+
+  const pd = pedido[0]?.data;
+  const nClientes = pd?.clientes ? Object.keys(pd.clientes).length : 0;
+  document.getElementById('r-pedido').textContent = nClientes ? nClientes + ' clientes' : 'Sin pedido';
+
+  document.getElementById('lista-legal-mini').innerHTML = audiencias.length
+    ? `<div class="row"><span class="t">${audiencias[0].tipo||'Audiencia'}</span><span class="m">${audiencias[0].fecha}</span></div>`
+    : emptyRow('Sin audiencias próximas.');
+
+  document.getElementById('lista-proyectos').innerHTML = proyectos.length
+    ? proyectos.map(p=>`<div class="row"><span class="t">${p.proyecto}</span><span class="m">${p.avance?.slice(0,30)||''}</span></div>`).join('')
+    : emptyRow('Sin avances registrados aún.');
+}
+
+// ---------- FINANZAS ----------
+async function cargarFinanzas(){
+  const [gastos, ingresos, deudas] = await Promise.all([
+    sb('gastos?order=created_at.desc&limit=50'),
+    sb('ingresos?select=monto'),
+    sb('deudas?estado=eq.activa')
+  ]);
+
+  const totalGas = gastos.reduce((s,g)=>s+(parseFloat(g.monto)||0),0);
+  const totalIng = ingresos.reduce((s,i)=>s+(parseFloat(i.monto)||0),0);
+  const bal = totalIng - totalGas;
+
+  document.getElementById('f-balance').textContent = fmt$(bal);
+  document.getElementById('f-balance').style.color = bal >= 0 ? 'var(--good)' : 'var(--bad)';
+  document.getElementById('f-ingresos').textContent = fmt$(totalIng);
+  document.getElementById('f-gastos').textContent = fmt$(totalGas);
+
+  const porCat = {};
+  gastos.forEach(g=>{ const c=g.categoria||'otro'; porCat[c]=(porCat[c]||0)+(parseFloat(g.monto)||0); });
+  const maxCat = Math.max(...Object.values(porCat), 1);
+  document.getElementById('f-categorias').innerHTML = Object.keys(porCat).length
+    ? Object.entries(porCat).sort((a,b)=>b[1]-a[1]).map(([c,m])=>`
+        <div class="bar-wrap">
+          <div class="bar-label"><span>${c}</span><span>${fmt$(m)}</span></div>
+          <div class="bar"><span style="width:${(m/maxCat*100).toFixed(0)}%"></span></div>
+        </div>`).join('')
+    : emptyRow('Sin gastos registrados.');
+
+  const totalDeuda = deudas.reduce((s,d)=>s+(parseFloat(d.monto_cuota)||0),0);
+  document.getElementById('f-deudas').innerHTML = deudas.length
+    ? deudas.map(d=>`<div class="row"><span class="t">${d.nombre}</span><span class="amt">${fmt$(d.monto_cuota)}/mes</span></div>`).join('') +
+      `<div class="row"><span class="t"><b>Total</b></span><span class="amt">${fmt$(totalDeuda)}/mes</span></div>`
+    : emptyRow('Sin deudas activas.');
+
+  document.getElementById('f-ultimos').innerHTML = gastos.length
+    ? gastos.slice(0,8).map(g=>`<div class="row"><span class="t">${g.descripcion}</span><span class="amt neg">-${fmt$(g.monto)}</span></div>`).join('')
+    : emptyRow('Sin gastos registrados.');
+}
+
+// ---------- HORCHATAS ----------
+async function cargarHorchatas(){
+  const [pedidoR, historial] = await Promise.all([
+    sb('pedido_activo?id=eq.1'),
+    sb('horchatas?order=created_at.desc&limit=8')
+  ]);
+
+  const pd = pedidoR[0]?.data;
+  const clientes = pd?.clientes ? Object.entries(pd.clientes) : [];
+  let total = 0;
+  clientes.forEach(([,items])=> items.forEach(i=> total += (parseFloat(i.subtotal)||0)));
+
+  document.getElementById('h-total').textContent = fmt$(total);
+  document.getElementById('h-clientes-count').textContent = clientes.length ? clientes.length + ' clientes en el pedido' : 'Sin pedido activo';
+
+  document.getElementById('h-activo').innerHTML = clientes.length
+    ? clientes.map(([nombre,items])=>{
+        const sub = items.reduce((s,i)=>s+(parseFloat(i.subtotal)||0),0);
+        return `<div class="row"><span class="t">${nombre}</span><span class="amt">${fmt$(sub)}</span></div>`;
+      }).join('')
+    : emptyRow('No hay pedido activo ahora mismo.');
+
+  document.getElementById('h-historial').innerHTML = historial.length
+    ? historial.map(p=>{
+        const fecha = new Date(p.created_at).toLocaleDateString('es-SV',{day:'numeric',month:'short',timeZone:'America/El_Salvador'});
+        return `<div class="row"><span class="t">${fecha} — ${(p.cliente||'').split(',').length} clientes</span><span class="m">${p.entregado?'Entregado':'Pendiente'}</span></div>`;
+      }).join('')
+    : emptyRow('Sin pedidos anteriores.');
+}
+
+// ---------- SALUD ----------
+async function cargarSalud(){
+  const [comidas, medR, gymR, habR] = await Promise.all([
+    sb(`comidas?fecha=eq.${hoyISO()}&order=created_at.asc`),
+    sb('mediciones?order=created_at.desc&limit=1'),
+    sb('gym?order=created_at.desc&limit=5'),
+    sb(`habitos_diarios?fecha=eq.${hoyISO()}`)
+  ]);
+
+  const totalCal = comidas.reduce((s,c)=>s+(parseFloat(c.calorias)||0),0);
+  const totalProt = comidas.reduce((s,c)=>s+(parseFloat(c.proteina_g)||0),0);
+  const totalCarb = comidas.reduce((s,c)=>s+(parseFloat(c.carbos_g)||0),0);
+  const totalGrasa = comidas.reduce((s,c)=>s+(parseFloat(c.grasa_g)||0),0);
+
+  document.getElementById('s-calorias').textContent = totalCal ? Math.round(totalCal) : '–';
+  document.getElementById('s-macros').textContent = totalCal
+    ? `P:${totalProt.toFixed(0)}g · C:${totalCarb.toFixed(0)}g · G:${totalGrasa.toFixed(0)}g`
+    : 'Sin comidas registradas hoy aún.';
+
+  document.getElementById('s-peso').textContent = medR[0]?.peso_kg ? medR[0].peso_kg + ' kg' : '–';
+  document.getElementById('s-animo').textContent = habR[0]?.estado_animo ? habR[0].estado_animo + '/10' : '–';
+
+  document.getElementById('s-comidas').innerHTML = comidas.length
+    ? comidas.map(c=>`<div class="row"><span class="t">${c.tipo}: ${c.alimento}</span><span class="m">${c.calorias?Math.round(c.calorias)+' kcal':''}</span></div>`).join('')
+    : emptyRow('Sin comidas registradas hoy.');
+
+  document.getElementById('s-gym').innerHTML = gymR.length
+    ? gymR.map(g=>`<div class="row"><span class="t">${g.entrenamiento}</span><span class="m">${new Date(g.created_at).toLocaleDateString('es-SV',{day:'numeric',month:'short',timeZone:'America/El_Salvador'})}</span></div>`).join('')
+    : emptyRow('Sin entrenamientos registrados.');
+
+  document.getElementById('s-mediciones').innerHTML = medR.length
+    ? `<div class="row"><span class="t">Peso</span><span class="amt">${medR[0].peso_kg||'-'} kg</span></div>
+       <div class="row"><span class="t">Cintura</span><span class="amt">${medR[0].cintura_cm||'-'} cm</span></div>`
+    : emptyRow('Sin mediciones registradas.');
+}
+
+// ---------- LEGAL ----------
+async function cargarLegal(){
+  const [casos, audiencias, plazos, protocolo] = await Promise.all([
+    sb('casos_fgr?estado=eq.activo&order=fecha_proxima_audiencia.asc'),
+    sb(`audiencias?fecha=gte.${hoyISO()}&order=fecha.asc&limit=5`),
+    sb(`plazos?fecha_vencimiento=gte.${hoyISO()}&order=fecha_vencimiento.asc&limit=5`),
+    sb('protocolo_notarial?order=numero_escritura.desc&limit=6')
+  ]);
+
+  document.getElementById('l-casos').textContent = casos.length;
+  document.getElementById('l-casos-lista').innerHTML = casos.length
+    ? casos.map(c=>`<div class="row"><span class="t">${c.numero_caso||''} ${c.titulo||''}</span><span class="m">${c.fecha_proxima_audiencia||''}</span></div>`).join('')
+    : emptyRow('Sin casos activos.');
+
+  document.getElementById('l-audiencias').innerHTML = audiencias.length
+    ? audiencias.map(a=>`<div class="row"><span class="t">${a.tipo||'Audiencia'} — ${a.juzgado||''}</span><span class="m">${a.fecha} ${a.hora||''}</span></div>`).join('')
+    : emptyRow('Sin audiencias próximas.');
+
+  document.getElementById('l-plazos').innerHTML = plazos.length
+    ? plazos.map(p=>`<div class="row"><span class="t">${p.descripcion}</span><span class="m">${p.fecha_vencimiento}</span></div>`).join('')
+    : emptyRow('Sin plazos próximos.');
+
+  document.getElementById('l-protocolo').innerHTML = protocolo.length
+    ? protocolo.map(e=>`<div class="row"><span class="t">#${e.numero_escritura} — ${e.tipo}</span><span class="m">${e.cliente||''}</span></div>`).join('')
+    : emptyRow('Sin escrituras registradas.');
+}
+
+// ---------- Carga inicial ----------
+cargarResumen();
+cargarFinanzas();
+cargarHorchatas();
+cargarSalud();
+cargarLegal();
+</script>
+</body>
+</html>
